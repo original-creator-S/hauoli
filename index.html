@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>16タイプ パーソナルカラー診断 | PRIVATE NAIL SALON hauoli</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@200;400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #fcfbf9;
+            --text-main: #4a4643;
+            --accent-gold: #d4af37;
+        }
+
+        body {
+            font-family: 'Zen Kaku Gothic New', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+            overscroll-behavior-y: none;
+            margin: 0; padding: 0;
+        }
+
+        .serif { font-family: 'Cormorant Garamond', serif; }
+        .brand { font-family: 'Montserrat', sans-serif; }
+
+        /* コンテナ設定（PC・タブレット用） */
+        @media (min-width: 1024px) {
+            body {
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #f5f3f0;
+                overflow: hidden;
+            }
+            #app {
+                width: 100%;
+                max-width: 1000px;
+                height: 95vh;
+                border-radius: 32px;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+                border: 1px solid #f0eee9;
+                overflow: hidden;
+            }
+            #content-area {
+                overflow-y: auto;
+            }
+        }
+
+        /* スマホ用デフォルト */
+        #app {
+            width: 100%;
+            min-height: 100vh;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 水彩背景用キャンバス */
+        #watercolor-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            transition: opacity 1.0s ease;
+        }
+
+        /* コンテンツエリアの設定 */
+        #view-landing {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        /* --- 超リアルなネイルチップ表現 --- */
+        .nail-chip-container { 
+            perspective: 1000px; 
+            width: 100%; 
+            cursor: pointer; 
+            padding: 4px; /* ホバー時の見切れ防止のための余白 */
+        }
+
+        .nail-chip-realistic {
+            width: 100%;
+            /* 黄金比に近い美しいオーバル〜アーモンドシェイプ */
+            aspect-ratio: 1 / 1.5;
+            /* 根元は丸く、先端はわずかにシャープに */
+            border-radius: 50% 50% 45% 45% / 75% 75% 25% 25%;
+            position: relative;
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease;
+            
+            /* ベースの影と立体感の構築（ぷっくり感） */
+            box-shadow: 
+                /* ドロップシャドウ（浮遊感） */
+                0 6px 12px -3px rgba(0,0,0,0.3),
+                /* 下部の厚み（ジェルのたまり） */
+                inset 0 -6px 10px -2px rgba(0,0,0,0.25),
+                /* 上部のエッジライト（反射） */
+                inset 0 2px 4px rgba(255,255,255,0.7),
+                /* サイドのカーブ（落ち込み） */
+                inset 3px 0 6px rgba(0,0,0,0.1),
+                inset -3px 0 6px rgba(0,0,0,0.1);
+        }
+
+        /* メインのハイライト（蛍光灯の映り込みのような鋭い光） */
+        .nail-chip-realistic::before {
+            content: ''; 
+            position: absolute; 
+            top: 8%; 
+            left: 20%; 
+            width: 20%; 
+            height: 40%;
+            border-radius: 50%;
+            /* 上から下へ、白から透明へ抜ける鋭い光 */
+            background: linear-gradient(160deg, rgba(255,255,255,0.95) 10%, rgba(255,255,255,0) 65%);
+            filter: blur(0.6px);
+            opacity: 0.9;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+        }
+
+        /* サブの光沢とジェルの厚み感（トップコート） */
+        .nail-chip-realistic::after {
+            content: ''; 
+            position: absolute; 
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: inherit;
+            /* 全体的な艶と、環境光の反射 */
+            background: radial-gradient(circle at 60% 30%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 40%);
+            /* エッジの輝きを強調 */
+            box-shadow: inset 0 0 2px 1px rgba(255,255,255,0.25);
+            pointer-events: none;
+        }
+
+        /* ホバー時のリッチな動き */
+        .nail-chip-container:hover .nail-chip-realistic {
+            transform: translateY(-5px) scale(1.05) rotateX(10deg);
+            z-index: 10;
+            box-shadow: 
+                0 15px 30px -5px rgba(0,0,0,0.35), 
+                inset 0 -6px 12px -2px rgba(0,0,0,0.25),
+                inset 0 2px 4px rgba(255,255,255,0.7);
+        }
+        
+        .nail-chip-container:active .nail-chip-realistic {
+            transform: scale(0.95);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* カード */
+        .option-card {
+            background: white;
+            border: 1px solid #f0eee9;
+            border-radius: 16px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            height: 100%;
+        }
+        .option-card:hover {
+            border-color: #b0a399;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        .option-card:active { transform: scale(0.98); background-color: #faf9f6; }
+
+        .type-btn {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            transition: all 0.2s;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.75rem;
+            color: #666;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+        }
+        .type-btn:hover { border-color: #d4af37; color: #d4af37; background: #fffcf5; }
+
+        .quiz-canvas {
+            width: 100%; height: 120px;
+            border-radius: 12px;
+            background-color: #fff;
+            background-image: radial-gradient(#f3f3f3 1px, transparent 1px);
+            background-size: 16px 16px;
+        }
+        @media (min-width: 768px) {
+            .quiz-canvas { height: 150px; }
+            .option-card { padding: 24px; border-radius: 20px; gap: 16px; }
+        }
+
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #dcdcdc; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        
+        <!-- 水彩背景キャンバス -->
+        <canvas id="watercolor-bg"></canvas>
+
+        <!-- HEADER -->
+        <header class="w-full py-4 px-6 md:px-12 flex justify-between items-center bg-white/90 backdrop-blur-md border-b border-stone-100 sticky top-0 z-50 h-[60px] md:h-[70px] shrink-0 relative z-20">
+            <div class="flex flex-col justify-center">
+                <h1 class="text-xl md:text-2xl font-light tracking-[0.2em] text-stone-800 brand leading-none">hauoli</h1>
+                <span class="text-[8px] md:text-[9px] tracking-[0.15em] text-stone-400 uppercase mt-1">Private Nail Salon</span>
+            </div>
+            <button onclick="resetApp()" class="text-[9px] md:text-[10px] font-bold text-stone-300 hover:text-stone-500 tracking-widest uppercase transition-colors py-1.5 px-4 border border-transparent hover:border-stone-100 rounded-full">Restart</button>
+        </header>
+
+        <!-- CONTENT -->
+        <div id="content-area" class="flex-grow flex flex-col p-4 md:p-8 custom-scrollbar relative">
+            
+            <!-- LANDING -->
+            <div id="view-landing" class="flex flex-col items-center justify-center min-h-[70vh] text-center fade-in my-auto pb-10 p-4 md:p-8 relative">
+                
+                <div class="space-y-6 max-w-4xl mx-auto w-full relative z-10">
+                    <p class="text-stone-400 font-medium tracking-[0.3em] text-[10px] md:text-xs uppercase brand">Personal Color Analysis</p>
+                    <h2 class="text-[5vw] md:text-4xl lg:text-5xl xl:text-6xl text-stone-800 leading-none serif italic whitespace-nowrap">
+                        指先に、心躍る「似合う」を。
+                    </h2>
+                    <p class="text-stone-500 leading-6 text-xs md:text-sm font-light max-w-md mx-auto pt-2 px-4">
+                        16タイプ分類のパーソナルカラー診断で<br>
+                        あなたの魅力を最大限に引き出すネイルカラーをご提案します。
+                    </p>
+                </div>
+
+                <div class="flex justify-center gap-8 md:gap-12 opacity-90 py-8 md:py-12 relative z-10">
+                    <div class="nail-chip-container w-10 md:w-14"><div class="nail-chip-realistic bg-[#eecbcb] rotate-[-6deg]"></div></div>
+                    <div class="nail-chip-container w-10 md:w-14"><div class="nail-chip-realistic bg-[#e6dccf] rotate-[4deg] mt-6"></div></div>
+                    <div class="nail-chip-container w-10 md:w-14"><div class="nail-chip-realistic bg-[#ccdce6] rotate-[-3deg]"></div></div>
+                </div>
+
+                <div class="flex flex-col gap-4 relative z-10 w-full max-w-xs">
+                    <button onclick="startQuiz()" class="group relative inline-flex items-center justify-center px-10 py-4 md:px-14 md:py-5 text-[10px] md:text-xs font-bold tracking-[0.25em] text-white transition-all duration-300 bg-stone-800 rounded-full hover:bg-stone-700 hover:shadow-xl hover:-translate-y-0.5 shadow-md">
+                        START DIAGNOSIS
+                    </button>
+                    <button onclick="showTypeList()" class="px-10 py-3 border border-stone-300 text-stone-500 bg-white/50 backdrop-blur-sm rounded-full text-[10px] font-bold tracking-[0.25em] hover:bg-stone-50 transition-all">
+                        VIEW ALL 16 TYPES
+                    </button>
+                </div>
+            </div>
+
+            <!-- TYPE LIST -->
+            <div id="view-type-list" class="hidden w-full max-w-4xl mx-auto fade-in pb-10 relative z-10">
+                 <div class="text-center mb-10 pt-4">
+                    <h2 class="text-2xl md:text-3xl text-stone-800 serif italic mb-2">16 Color Types</h2>
+                    <p class="text-[10px] text-stone-400 tracking-widest uppercase">Select a type to view details</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                     <!-- Spring -->
+                    <div class="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-stone-100 shadow-sm">
+                        <h3 class="text-center text-sm font-bold text-stone-600 tracking-widest mb-4 brand text-[#f08080]">SPRING</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="showResult('LightSpring', true)" class="type-btn">Light Spring</button>
+                            <button onclick="showResult('BrightSpring', true)" class="type-btn">Bright Spring</button>
+                            <button onclick="showResult('VividSpring', true)" class="type-btn">Vivid Spring</button>
+                            <button onclick="showResult('WarmSpring', true)" class="type-btn">Warm Spring</button>
+                        </div>
+                    </div>
+                    <!-- Summer -->
+                    <div class="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-stone-100 shadow-sm">
+                        <h3 class="text-center text-sm font-bold text-stone-600 tracking-widest mb-4 brand text-[#87ceeb]">SUMMER</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="showResult('LightSummer', true)" class="type-btn">Light Summer</button>
+                            <button onclick="showResult('MutedSummer', true)" class="type-btn">Muted Summer</button>
+                            <button onclick="showResult('CoolSummer', true)" class="type-btn">Cool Summer</button>
+                            <button onclick="showResult('BrightSummer', true)" class="type-btn">Bright Summer</button>
+                        </div>
+                    </div>
+                    <!-- Autumn -->
+                    <div class="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-stone-100 shadow-sm">
+                        <h3 class="text-center text-sm font-bold text-stone-600 tracking-widest mb-4 brand text-[#d2691e]">AUTUMN</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="showResult('MutedAutumn', true)" class="type-btn">Muted Autumn</button>
+                            <button onclick="showResult('StrongAutumn', true)" class="type-btn">Strong Autumn</button>
+                            <button onclick="showResult('DeepAutumn', true)" class="type-btn">Deep Autumn</button>
+                            <button onclick="showResult('WarmAutumn', true)" class="type-btn">Warm Autumn</button>
+                        </div>
+                    </div>
+                    <!-- Winter -->
+                    <div class="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-stone-100 shadow-sm">
+                        <h3 class="text-center text-sm font-bold text-stone-600 tracking-widest mb-4 brand text-[#191970]">WINTER</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="showResult('ClearWinter', true)" class="type-btn">Clear Winter</button>
+                            <button onclick="showResult('DeepWinter', true)" class="type-btn">Deep Winter</button>
+                            <button onclick="showResult('VividWinter', true)" class="type-btn">Vivid Winter</button>
+                            <button onclick="showResult('CoolWinter', true)" class="type-btn">Cool Winter</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="resetApp()" class="px-8 py-3 border border-stone-300 text-stone-500 bg-white/50 backdrop-blur-sm rounded-full text-[10px] font-bold tracking-[0.25em] hover:bg-stone-50 transition-all">BACK TO TOP</button>
+                </div>
+            </div>
+
+            <!-- QUIZ -->
+            <div id="view-quiz" class="hidden w-full max-w-3xl mx-auto fade-in flex-col items-center pb-10 relative z-10 p-4 md:p-8">
+                <div class="w-full bg-stone-100 h-1 rounded-full mb-6 md:mb-8 overflow-hidden shrink-0">
+                    <div id="progress-bar" class="bg-stone-800 h-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+
+                <div class="flex-grow flex flex-col justify-center w-full relative">
+                    <!-- BACK BUTTON -->
+                    <button id="back-btn" onclick="prevStep()" class="absolute left-2 top-0 text-[10px] font-bold text-stone-400 hover:text-stone-600 transition-colors flex items-center gap-1 hidden">
+                        <span>←</span> BACK
+                    </button>
+
+                    <div class="text-center mb-6 md:mb-8 w-full px-2 pt-6">
+                        <span id="question-number" class="text-[9px] md:text-[10px] font-bold text-stone-400 tracking-[0.3em] uppercase block mb-2 brand">Question 01</span>
+                        <h3 id="question-text" class="text-xl md:text-2xl lg:text-3xl text-stone-800 font-medium leading-relaxed serif"></h3>
+                        <p id="question-desc" class="text-xs text-stone-500 mt-2 font-light"></p>
+                    </div>
+
+                    <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 w-full px-4">
+                        <!-- Cards injected -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOADING -->
+            <div id="view-loading" class="hidden flex-col items-center justify-center min-h-[60vh] fade-in relative z-10 p-4">
+                <div class="relative w-12 h-12 md:w-16 md:h-16 mb-6">
+                    <div class="absolute inset-0 border-2 border-stone-100 rounded-full"></div>
+                    <div class="absolute inset-0 border-t-2 border-stone-800 rounded-full animate-spin"></div>
+                </div>
+                <p class="text-[9px] md:text-[10px] text-stone-500 tracking-[0.3em] uppercase brand animate-pulse">Analyzing...</p>
+            </div>
+
+            <!-- RESULT -->
+            <div id="view-result" class="hidden w-full fade-in pb-10 relative z-10 p-4 md:p-8">
+                
+                <div class="text-center mb-10 pt-4">
+                    <p class="text-[9px] md:text-[10px] font-bold text-stone-400 tracking-[0.4em] uppercase mb-2 brand">Diagnosis Result</p>
+                    <h2 id="result-title" class="text-2xl md:text-4xl lg:text-5xl text-stone-800 font-normal serif mb-3 italic"></h2>
+                    <div class="inline-flex items-center px-4 py-1 bg-stone-50 rounded-full border border-stone-100 mb-4">
+                        <p id="result-subtitle" class="text-stone-600 font-medium tracking-widest text-[8px] md:text-[9px] uppercase brand"></p>
+                    </div>
+                    <p id="result-description" class="text-xs text-stone-500 leading-6 font-light max-w-2xl mx-auto text-center px-2"></p>
+                </div>
+
+                <div class="max-w-5xl mx-auto w-full space-y-10">
+                    
+                    <!-- 30 Nail Tips -->
+                    <div class="bg-white rounded-xl">
+                        <div class="flex items-end justify-between mb-4 border-b border-stone-50 pb-2">
+                            <h3 class="font-medium text-base md:text-lg text-stone-800 serif italic">30 Color Palette</h3>
+                            <span class="text-[8px] md:text-[9px] text-stone-300 tracking-widest uppercase">Tap for HEX</span>
+                        </div>
+                        <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-15 gap-2 md:gap-3" id="palette-grid"></div>
+                    </div>
+
+                    <!-- Chart & Info -->
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                        <div class="md:col-span-5 bg-stone-50 p-6 rounded-[20px] border border-stone-100 flex items-center justify-center">
+                            <div class="h-[160px] md:h-[180px] w-full max-w-[240px] relative">
+                                <canvas id="resultChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-7 grid grid-cols-2 gap-4">
+                            <div class="border border-stone-100 p-4 md:p-5 rounded-[20px] bg-white">
+                                <h4 class="text-[8px] md:text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-2 brand">Textures</h4>
+                                <ul id="texture-list" class="space-y-2 text-[10px] md:text-xs text-stone-600 font-medium"></ul>
+                            </div>
+                            <div class="border border-stone-100 p-4 md:p-5 rounded-[20px] bg-white">
+                                <h4 class="text-[8px] md:text-[9px] text-stone-400 uppercase tracking-widest mb-2 brand">Jewelry</h4>
+                                <div id="jewelry-advice" class="text-[10px] md:text-xs text-stone-600 leading-relaxed font-medium"></div>
+                            </div>
+                            <div class="col-span-2 border border-stone-100 p-4 md:p-5 rounded-[20px] bg-white">
+                                <h4 class="text-[8px] md:text-[9px] text-stone-400 uppercase tracking-widest mb-2 brand">Keywords</h4>
+                                <div id="keywords-container" class="flex flex-wrap gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-12 pt-8 border-t border-stone-100 flex justify-center gap-4">
+                    <!-- RESERVE BUTTON -->
+                    <a href="http://b.hpr.jp/kr/hp/H000789723" target="_blank" class="px-12 py-3 bg-stone-800 text-white rounded-full text-[9px] font-bold tracking-[0.25em] shadow-lg hover:bg-stone-700 flex items-center justify-center">RESERVE</a>
+                    <button id="result-back-btn" onclick="resetApp()" class="px-8 py-3 border border-stone-200 text-stone-500 rounded-full text-[9px] font-bold tracking-[0.25em] hover:bg-stone-50">TOP</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-stone-800 text-white px-6 py-2 rounded-full shadow-xl opacity-0 transition-all duration-300 pointer-events-none text-[10px] tracking-widest z-[100]">
+        Copied
+    </div>
+
+    <script>
+        // --- WATERCOLOR BACKGROUND DRAWING ---
+        function drawWatercolorBg() {
+            const canvas = document.getElementById('watercolor-bg');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            
+            // アプリコンテナ全体をカバーするようにサイズ設定
+            const container = document.getElementById('app');
+            canvas.width = container.offsetWidth * dpr;
+            canvas.height = container.offsetHeight * dpr;
+            ctx.scale(dpr, dpr);
+            
+            const w = container.offsetWidth;
+            const h = container.offsetHeight;
+            
+            ctx.clearRect(0,0,w,h);
+            
+            const colors = [
+                "rgba(255, 228, 225, 0.5)", 
+                "rgba(240, 248, 255, 0.5)", 
+                "rgba(255, 250, 205, 0.4)", 
+                "rgba(230, 230, 250, 0.4)", 
+                "rgba(245, 245, 220, 0.5)", 
+                "rgba(255, 240, 245, 0.5)"
+            ];
+
+            function drawOrganicBlob(x, y, r, color) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.fillStyle = color;
+                ctx.globalCompositeOperation = 'multiply';
+                ctx.filter = "blur(50px)"; 
+                
+                ctx.moveTo(x + r, y);
+                ctx.bezierCurveTo(x + r, y + r*0.6, x + r*0.6, y + r, x, y + r);
+                ctx.bezierCurveTo(x - r*0.6, y + r, x - r, y + r*0.6, x - r, y);
+                ctx.bezierCurveTo(x - r, y - r*0.6, x - r*0.6, y - r, x, y - r);
+                ctx.bezierCurveTo(x + r*0.6, y - r, x + r, y - r*0.6, x + r, y);
+                
+                ctx.fill();
+                ctx.restore();
+            }
+
+            const numBlobs = 10; 
+            for (let i = 0; i < numBlobs; i++) {
+                const x = Math.random() * w;
+                const y = Math.random() * h;
+                const r = (Math.random() * 0.15 + 0.1) * Math.min(w, h); 
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                drawOrganicBlob(x, y, r, color);
+            }
+        }
+
+        window.addEventListener('load', drawWatercolorBg);
+        window.addEventListener('resize', drawWatercolorBg);
+
+        // --- DRAWING UTILS ---
+        function drawStylishLine(ctx, pts, color="#333", width=1.0) {
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length - 2; i++) {
+                const xc = (pts[i].x + pts[i + 1].x) / 2; const yc = (pts[i].y + pts[i + 1].y) / 2;
+                ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc);
+            }
+            if (pts.length > 2) ctx.quadraticCurveTo(pts[pts.length - 2].x, pts[pts.length - 2].y, pts[pts.length - 1].x, pts[pts.length - 1].y);
+            else if (pts.length === 2) ctx.lineTo(pts[1].x, pts[1].y);
+            ctx.stroke();
+        }
+
+        function drawWash(ctx, pts, color, alpha=0.2) {
+            ctx.save(); ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+            for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+            ctx.closePath(); ctx.fillStyle = color; ctx.globalAlpha = alpha; ctx.shadowBlur = 15; ctx.shadowColor = color; ctx.fill(); ctx.restore();
+        }
+
+        // --- QUIZ ILLUSTRATIONS (ALL 15) ---
+        function drawQuizVisual(canvasId, type, index) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            const w = rect.width; const h = rect.height; const cx = w/2; const cy = h/2;
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = index === 0 ? "#fdfbf7" : "#f7f9fd"; ctx.beginPath(); ctx.arc(cx, cy, h*0.35, 0, Math.PI*2); ctx.fill();
+            const lineCol = "#59504a"; ctx.strokeStyle = lineCol; ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+            if (type === 'skin') {
+                const c = index===0 ? "#faecd9" : "#fbeff4";
+                drawWash(ctx, [{x:cx-30,y:cy-30},{x:cx+30,y:cy-30},{x:cx+30,y:cy+30},{x:cx-30,y:cy+30}], c, 0.8);
+                drawStylishLine(ctx, [{x:cx-20,y:cy-20},{x:cx+20,y:cy-20},{x:cx+20,y:cy+20},{x:cx-20,y:cy+20},{x:cx-20,y:cy-20}], lineCol);
+                drawStylishLine(ctx, [{x:cx,y:cy+20},{x:cx+10,y:cy+40}], lineCol);
+            }
+            else if (type === 'eye') {
+                const c = ["#a1887f", "#795548", "#4e342e", "#212121"][index];
+                ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI*2); ctx.lineWidth=1; ctx.stroke();
+                ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(cx+5, cy-5, 4, 0, Math.PI*2); ctx.fill();
+            }
+            else if (type === 'vein') {
+                drawStylishLine(ctx, [{x:cx-20,y:cy+30},{x:cx-10,y:cy},{x:cx+10,y:cy-30}], "#d7ccc8", 2);
+                ctx.strokeStyle = index===0 ? "#a5d6a7" : "#90caf9"; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(cx-5, cy+10); ctx.quadraticCurveTo(cx, cy, cx+5, cy-10); ctx.stroke();
+            }
+            else if (type === 'texture') {
+                if(index===0) { const g = ctx.createRadialGradient(cx-10, cy-10, 5, cx, cy, 30); g.addColorStop(0, "white"); g.addColorStop(1, "#ffe0b2"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 25, 0, Math.PI*2); ctx.fill(); } 
+                else { ctx.fillStyle = "#efebe9"; ctx.beginPath(); ctx.arc(cx, cy, 25, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle="#d7ccc8"; ctx.lineWidth=1; ctx.stroke(); }
+            }
+            else if (type === 'sun') {
+                const c = index===0 ? "#8d6e63" : "#ef9a9a"; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx, cy, 15, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = "#ffcc80"; ctx.lineWidth=2;
+                for(let i=0; i<8; i++) { const a = i*Math.PI/4; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*20, cy+Math.sin(a)*20); ctx.lineTo(cx+Math.cos(a)*28, cy+Math.sin(a)*28); ctx.stroke(); }
+            }
+            else if (type === 'hair') {
+                const c = index===0 ? "#8d6e63" : "#424242"; ctx.strokeStyle = c; ctx.lineWidth = 3;
+                drawStylishLine(ctx, [{x:cx-20,y:cy-20},{x:cx-10,y:cy},{x:cx+5,y:cy+20}]); drawStylishLine(ctx, [{x:cx,y:cy-20},{x:cx+10,y:cy},{x:cx+25,y:cy+20}]);
+            }
+            else if (type === 'cheek') {
+                drawStylishLine(ctx, [{x:cx-25,y:cy-20},{x:cx-30,y:cy},{x:cx-25,y:cy+25},{x:cx-10,y:cy+35}], "#d7ccc8"); // Face
+                const c = index===0 ? "#ffccbc" : "#f48fb1"; ctx.fillStyle = c; ctx.globalAlpha = 0.6;
+                ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1.0;
+            }
+            else if (type === 'jewelry') {
+                const c = index===0 ? "#fdd835" : "#cfd8dc"; ctx.strokeStyle = c; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI*2); ctx.stroke(); ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(cx-10, cy-10, 3, 0, Math.PI*2); ctx.fill();
+            }
+            else if (type === 'lip') {
+                const c = index===0 ? "#ffccbc" : "#f48fb1"; drawWash(ctx, [{x:cx-25,y:cy},{x:cx,y:cy+15},{x:cx+25,y:cy},{x:cx,y:cy-10}], c, 0.8);
+                drawStylishLine(ctx, [{x:cx-25,y:cy},{x:cx,y:cy+3},{x:cx+25,y:cy}], "#e57373", 1);
+            }
+            else if (type === 'weakness') {
+                const c = index===0 ? "#ff9800" : "#9e9e9e"; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx, cy, 25, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx-10, cy-10); ctx.lineTo(cx+10, cy+10); ctx.moveTo(cx+10, cy-10); ctx.lineTo(cx-10, cy+10); ctx.stroke();
+            }
+            else if (type === 'contrast') {
+                if(index===0) { ctx.fillStyle="#bdbdbd"; ctx.globalAlpha=0.5; ctx.beginPath(); ctx.arc(cx-10, cy, 20, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(cx+10, cy, 20, 0, Math.PI*2); ctx.fill(); } 
+                else { ctx.fillStyle="#424242"; ctx.globalAlpha=1.0; ctx.beginPath(); ctx.arc(cx-10, cy, 20, 0, Math.PI*2); ctx.fill(); ctx.fillStyle="#fff"; ctx.strokeStyle="#424242"; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx+10, cy, 20, 0, Math.PI*2); ctx.fill(); ctx.stroke(); }
+                ctx.globalAlpha=1.0;
+            }
+            else if (type === 'impression') {
+                ctx.strokeStyle = "#8d6e63"; ctx.lineWidth = 1.5;
+                if(index===0) { ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI*2); ctx.stroke(); }
+                if(index===1) { ctx.beginPath(); ctx.ellipse(cx, cy, 15, 25, 0, 0, Math.PI*2); ctx.stroke(); }
+                if(index===2) { ctx.strokeRect(cx-20, cy-20, 40, 40); }
+                if(index===3) { ctx.beginPath(); ctx.moveTo(cx, cy-25); ctx.lineTo(cx+25, cy+20); ctx.lineTo(cx-25, cy+20); ctx.closePath(); ctx.stroke(); }
+            }
+            else if (type === 'pattern') {
+                ctx.strokeStyle = "#59504a"; ctx.lineWidth = 1;
+                if(index===0) { for(let i=0; i<5; i++) { ctx.beginPath(); ctx.arc(cx+(Math.random()-0.5)*40, cy+(Math.random()-0.5)*40, 2, 0, Math.PI*2); ctx.stroke(); } }
+                else { ctx.beginPath(); ctx.moveTo(cx-20, cy+20); ctx.lineTo(cx, cy-20); ctx.lineTo(cx+20, cy+20); ctx.stroke(); }
+            }
+            else if (type === 'closet') {
+                const c = index===0 ? "#d7ccc8" : "#90a4ae"; drawStylishLine(ctx, [{x:cx-25,y:cy+10},{x:cx,y:cy-15},{x:cx+25,y:cy+10}], c, 2);
+                ctx.beginPath(); ctx.arc(cx, cy-20, 5, 0, Math.PI*2); ctx.strokeStyle=c; ctx.stroke();
+            }
+            else if (type === 'white') {
+                const c = index===0 ? "#fff9c4" : "#ffffff"; ctx.fillStyle = c; ctx.fillRect(cx-30, cy-20, 60, 40);
+                ctx.strokeStyle = "#e0e0e0"; ctx.lineWidth = 1; ctx.strokeRect(cx-30, cy-20, 60, 40);
+            }
+        }
+
+        // --- DATA & LOGIC ---
+        const questions = [
+            { id: 'skin', q: "肌のベーストーンは？", desc: "手首の内側の色や、全体的な肌の印象で判断します。", options: [{t:"イエローベース", s:{W:5,C:0}}, {t:"ブルーベース", s:{W:0,C:5}}] },
+            { id: 'eye', q: "瞳の色と印象は？", desc: "黒目の部分の色味です。", options: [{t:"明るい茶・キラキラ", s:{L:3,V:2}}, {t:"ソフトな焦茶・穏やか", s:{S:3,L:1}}, {t:"深い茶・落ち着き", s:{D:3,W:1}}, {t:"黒・コントラスト強", s:{D:2,C:1,V:2}}] },
+            { id: 'vein', q: "手首の血管の色は？", desc: "自然光の下で確認してください。", options: [{t:"緑っぽく見える", s:{W:4}}, {t:"青紫っぽく見える", s:{C:4}}] },
+            { id: 'texture', q: "肌の質感は？", desc: "ファンデーションを塗っていない状態です。", options: [{t:"ツヤ・ハリ", s:{V:3,L:1}}, {t:"マット・陶器", s:{S:3,D:1}}] },
+            { id: 'sun', q: "日焼け後の変化は？", desc: "夏のレジャー後などの反応です。", options: [{t:"黒くなりやすい", s:{D:3}}, {t:"赤くなって戻る", s:{L:3}}] },
+            { id: 'hair', q: "地毛の色味は？", desc: "カラーリングしていない状態の色です。", options: [{t:"茶色系・明るめ", s:{W:2,L:2}}, {t:"黒・アッシュ系", s:{C:2,D:2}}] },
+            { id: 'cheek', q: "頬の赤みの出方は？", desc: "血色の良さについて。", options: [{t:"赤くなりやすく黄みピンク", s:{W:3,L:2}}, {t:"赤くなりにくい/青みピンク", s:{C:3,D:1}}] },
+            { id: 'jewelry', q: "似合うアクセは？", desc: "肌が明るくきれいに見える方。", options: [{t:"ゴールド", s:{W:4}}, {t:"シルバー", s:{C:4}}] },
+            { id: 'lip', q: "素の唇の色は？", desc: "リップクリームのみの状態。", options: [{t:"コーラル・朱赤", s:{W:3,L:1}}, {t:"ローズ・桜色", s:{C:3,L:1}}] },
+            { id: 'weakness', q: "苦手だと感じる色は？", desc: "避けている色を選んでください。", options: [{t:"オレンジ/キャメル(黄ぐすみ)", s:{C:4}}, {t:"グレー/青みピンク(青ざめる)", s:{W:4}}] },
+            { id: 'contrast', q: "顔立ちのコントラストは？", desc: "肌・髪・瞳・眉の色の差。", options: [{t:"穏やか・ワントーン", s:{S:4}}, {t:"はっきり・メリハリ", s:{V:4}}] },
+            { id: 'impression', q: "周りからの印象は？", desc: "雰囲気について。", options: [{t:"キュート・親しみ", s:{W:1,L:2,V:1}}, {t:"上品・エレガント", s:{C:1,L:2,S:1}}, {t:"大人っぽい・リッチ", s:{W:1,D:2,S:1}}, {t:"クール・モダン", s:{C:1,D:2,V:1}}] },
+            { id: 'pattern', q: "似合う柄の傾向は？", desc: "服の柄について。", options: [{t:"小花柄・細かい柄", s:{S:3,L:1}}, {t:"大柄・幾何学模様", s:{V:3,D:1}}] },
+            { id: 'closet', q: "よく着る服の色は？", desc: "クローゼットに多い色。", options: [{t:"暖色・ベージュ系", s:{W:3,S:1}}, {t:"寒色・モノトーン", s:{C:3,V:1}}] },
+            { id: 'white', q: "似合う白は？", desc: "顔映りが良いと感じる白。", options: [{t:"アイボリー", s:{W:3,S:1}}, {t:"純白", s:{C:3,V:1}}] }
+        ];
+
+        let scores = { W:0, C:0, L:0, D:0, S:0, V:0 };
+        let answerHistory = [];
+
+        const typesData = {
+            "LightSpring": { name: "Light Spring", subtitle: "Spring / Light", hex:"#FFD1DC", desc: "明るく澄んだ色が似合う、春の妖精のようなタイプ。透明感のあるパステルカラーを纏うと、肌が生き生きと輝きます。", palette: ["#FEF2C9","#FFDAB9","#FFB7B2","#BCE29E","#98FB98","#E6E6FA","#FFF1C1","#FFCCAC","#FFD1DC","#C1E1C1","#FFF9E3","#FFE5D9","#FFC8C4","#D1EAD0","#B2F7B2","#F0F0FF","#FDF5E6","#FFE4B5","#F08080","#FFD700","#FFFACD","#E0FFFF","#FFEFD5","#FAFAD2","#FFE4E1","#F5FFFA","#F0FFF0","#E6E6FA","#FFF0F5","#F0F8FF"], attr:[70,95,60,40], jewelry:"Bright Gold", tex:["シアー","ラメ"], key:["Fresh","Cute"] },
+            "BrightSpring": { name: "Bright Spring", subtitle: "Spring / Bright", hex:"#FFD700", desc: "鮮やかで元気なビタミンカラーが似合うタイプ。彩度が高い色で肌が輝きます。", palette: ["#FF4500","#FFD700","#32CD32","#1E90FF","#FF69B4","#FFA500","#00FA9A","#FF6347","#FDFA66","#FF5C8A","#FF7F50","#FFFF00","#00FF7F","#00BFFF","#FF1493","#FF8C00","#ADFF2F","#191970","#FFDAB9","#DA70D6","#00CED1","#87CEEB","#20B2AA","#7FFF00","#FFD700","#FF4500","#F4A460","#FF1493","#00FF00","#D2691E"], attr:[85,80,95,20], jewelry:"Gold", tex:["高発色","ツヤ"], key:["Pop","Vivid"] },
+            "WarmSpring": { name: "Warm Spring", subtitle: "Spring / Warm", hex:"#FFA500", desc: "黄みがかった温かみのある色が最も得意。多幸感あふれる色で血色UP。", palette: ["#FFA500","#FFD700","#FF6347","#9ACD32","#FF4500","#DAA520","#F4A460","#FF8C00","#FA8072","#EEE8AA","#BDB76B","#CD853F","#D2691E","#F0E68C","#FFDAB9","#FFB6C1","#FFA07A","#E9967A","#8B4513","#A0522D","#DEB887","#D2B48C","#BC8F8F","#F5DEB3","#FFE4B5","#FFEFD5","#FAFAD2","#FFFFE0","#F08080","#CD5C5C"], attr:[100,70,70,40], jewelry:"Yellow Gold", tex:["クリーミー","パール"], key:["Warm","Happy"] },
+            "VividSpring": { name: "Vivid Spring", subtitle: "Spring / Vivid", hex:"#FF4500", desc: "春タイプの中でも特に鮮やかでクリアな色が似合います。彩度の高い色が肌のくすみを飛ばします。", palette: ["#FF0000","#FFD700","#00FF00","#00BFFF","#FF1493","#FFFF00","#FF4500","#00FA9A","#1E90FF","#FF69B4","#FF6347","#32CD32","#87CEEB","#FFA500","#FF8C00","#DC143C","#4169E1","#00CED1","#9400D3","#8A2BE2","#7B68EE","#6A5ACD","#483D8B","#191970","#000080","#00008B","#0000CD","#0000FF","#4682B4","#5F9EA0"], attr:[80,60,100,10], jewelry:"Gold/Silver", tex:["クリア","ガラス"], key:["Vivid","Clear"] },
+            
+            "LightSummer": { name: "Light Summer", subtitle: "Summer / Light", hex:"#D8BFD8", desc: "涼しげで淡いパステルカラーが似合う、儚げで上品なタイプ。青みのある優しい色が透明感を引き立てます。", palette: ["#E6E6FA","#ADD8E6","#FFB6C1","#F0FFF0","#E0FFFF","#D8BFD8","#B0C4DE","#FFC0CB","#FDFDFE","#C5D0E6","#F0F8FF","#F5F5F5","#E1F5FE","#FCE4EC","#F3E5F5","#E8EAF6","#E0F2F1","#F9FBE7","#FFF3E0","#EFEBE9","#D1C4E9","#B3E5FC","#C8E6C9","#FFCDD2","#F8BBD0","#DCEDC8","#FFF9C4","#FFE0B2","#F5F5F5","#CFD8DC"], attr:[15,95,45,65], jewelry:"Silver", tex:["マット","水彩"], key:["Noble","Soft"] },
+            "MutedSummer": { name: "Muted Summer", subtitle: "Summer / Muted", hex:"#8E7B75", desc: "グレイッシュで穏やかな色が似合う、都会的でシックなタイプ。くすみカラーのグラデーションコーデがおしゃれに見えます。", palette: ["#BC8F8F","#778899","#A9A9A9","#663399","#5F9EA0","#DB7093","#8FBC8F","#708090","#8E7B75","#6C7A89","#957DAD","#81B1D3","#B3CDE3","#CCEBC5","#DECBE4","#FED9A6","#FFFFCC","#E5D8BD","#FDDAEC","#F2F2F2","#B0BEC5","#90A4AE","#78909C","#607D8B","#455A64","#37474F","#D7CCC8","#BCAAA4","#A1887F","#8D6E63"], attr:[10,60,30,100], jewelry:"Matte Silver", tex:["サンド","くすみ"], key:["Chic","Grace"] },
+            "CoolSummer": { name: "Cool Summer", subtitle: "Summer / Cool", hex:"#4169E1", desc: "青みが強く涼しげな色が最も得意。黄みを抑えたブルーベースの色で肌が白く透き通るように見えます。", palette: ["#4169E1","#00BFFF","#1E90FF","#87CEEB","#4682B4","#5F9EA0","#6495ED","#00CED1","#40E0D0","#AFEEEE","#E0FFFF","#F0FFFF","#F0F8FF","#B0C4DE","#ADD8E6","#87CEFA","#0000CD","#0000FF","#000080","#00008B","#191970","#483D8B","#6A5ACD","#7B68EE","#9370DB","#8A2BE2","#9400D3","#9932CC","#BA55D3","#8B008B"], attr:[0,60,60,50], jewelry:"Silver/Platinum", tex:["サテン","パール"], key:["Cool","Elegant"] },
+            "BrightSummer": { name: "Bright Summer", subtitle: "Summer / Bright", hex:"#FF69B4", desc: "夏タイプの中でも明るく、やや鮮やかな色が似合います。ローズピンクやラベンダーなど、華やかな色が映えます。", palette: ["#FF69B4","#FF1493","#DB7093","#C71585","#DA70D6","#BA55D3","#9370DB","#8A2BE2","#7B68EE","#6A5ACD","#483D8B","#4169E1","#1E90FF","#00BFFF","#87CEEB","#00CED1","#40E0D0","#AFEEEE","#E0FFFF","#F0FFFF","#F0F8FF","#E6E6FA","#D8BFD8","#DDA0DD","#EE82EE","#FF00FF","#FF00FF","#C71585","#8B008B","#800080"], attr:[10,75,70,30], jewelry:"Silver/PinkGold", tex:["ラメ","シアー"], key:["Bright","Floral"] },
+
+            "MutedAutumn": { name: "Muted Autumn", subtitle: "Autumn / Muted", hex:"#C19A6B", desc: "穏やかで落ち着いたアースカラーが得意。ベージュやカーキなど、ナチュラルな色が洗練された雰囲気を醸し出します。", palette: ["#C19A6B","#D2B48C","#F5DEB3","#DEB887","#BC8F8F","#A0522D","#8B4513","#D2691E","#CD853F","#F4A460","#DAA520","#B8860B","#556B2F","#6B8E23","#808000","#555555","#696969","#808080","#A9A9A9","#C0C0C0","#D3D3D3","#DCDCDC","#F5F5F5","#FFFFFF","#FFFAFA","#F0FFF0","#F5FFFA","#F0FFFF","#F0F8FF","#E6E6FA"], attr:[70,50,30,90], jewelry:"Matte Gold", tex:["スエード","マット"], key:["Natural","Calm"] },
+            "StrongAutumn": { name: "Strong Autumn", subtitle: "Autumn / Strong", hex:"#B22222", desc: "こっくりとした鮮やかさのあるリッチな色が似合います。ゴージャスで華やかな印象を引き立てます。", palette: ["#B22222","#800000","#A52A2A","#8B4513","#D2691E","#CD853F","#DAA520","#B8860B","#556B2F","#006400","#2F4F4F","#008080","#008B8B","#4682B4","#5F9EA0","#663399","#4B0082","#800080","#8B008B","#C71585","#DB7093","#FF1493","#FF69B4","#FFB6C1","#FFC0CB","#FFDAB9","#FFE4B5","#FFF8DC","#FFFFF0","#F0FFF0"], attr:[90,40,80,20], jewelry:"Yellow Gold", tex:["ベルベット","金箔"], key:["Rich","Gorgeous"] },
+            "DeepAutumn": { name: "Deep Autumn", subtitle: "Autumn / Deep", hex:"#5D3A1A", desc: "こっくりとした深い色が似合う、ゴージャスで大人っぽいタイプ。アースカラーや濃いブラウンをベースにしたリッチなスタイルが映えます。", palette: ["#2F4F4F","#8B4513","#800000","#191970","#556B2F","#4B0082","#A52A2A","#000000","#3D2B1F","#551A8B","#8B0000","#006400","#483D8B","#2F4F4F","#2E8B57","#8B4513","#708090","#000080","#191970","#3B3B3B","#1A1110","#2B1B17","#3B2F2F","#2A2A2A","#332421","#1C1C1C","#120E0E","#2C1503","#3D0C02","#1E1E1E"], attr:[85,15,60,65], jewelry:"Bronze", tex:["べっ甲","深み"], key:["Rich","Deep"] },
+            "WarmAutumn": { name: "Warm Autumn", subtitle: "Autumn / Warm", hex:"#D2691E", desc: "黄みが強く温かみのある色が最も得意。オリーブやテラコッタなど、深みのある暖色が肌に馴染みます。", palette: ["#D2691E","#CD853F","#DAA520","#B8860B","#556B2F","#6B8E23","#808000","#8B4513","#A0522D","#BC8F8F","#DEB887","#D2B48C","#F5DEB3","#FFE4B5","#FFDAB9","#FFDEAD","#F4A460","#FFA500","#FF8C00","#FF7F50","#FF6347","#FF4500","#B22222","#A52A2A","#800000","#8B0000","#800080","#4B0082","#483D8B","#191970"], attr:[100,40,50,50], jewelry:"Gold", tex:["ウール","レザー"], key:["Warm","Traditional"] },
+
+            "ClearWinter": { name: "Clear Winter", subtitle: "Winter / Clear", hex:"#FFFFFF", desc: "澄んだ空気のような、クリアで明るい色が似合います。アイシーカラーと締め色のコントラストが得意です。", palette: ["#FFFFFF","#000000","#FF0000","#0000FF","#FFFF00","#00FF00","#FF00FF","#00FFFF","#F0FFFF","#E0FFFF","#AFEEEE","#7FFFD4","#00FA9A","#00FF7F","#32CD32","#90EE90","#98FB98","#F0FFF0","#F5FFFA","#FFFFFF","#F0F8FF","#E6E6FA","#E6E6FA","#D8BFD8","#DDA0DD","#EE82EE","#FF00FF","#FF69B4","#FF1493","#C71585"], attr:[5,90,90,10], jewelry:"Platinum", tex:["エナメル","ガラス"], key:["Clear","Sharp"] },
+            "DeepWinter": { name: "Deep Winter", subtitle: "Winter / Deep", hex:"#191970", desc: "深く濃い色が似合う、重厚で威厳のあるタイプ。黒やワインレッドなど、暗い色が肌の白さを際立たせます。", palette: ["#191970","#000080","#00008B","#0000CD","#0000FF","#4169E1","#1E90FF","#00BFFF","#87CEEB","#4682B4","#5F9EA0","#2F4F4F","#006400","#008000","#008080","#20B2AA","#3CB371","#2E8B57","#228B22","#006400","#556B2F","#808000","#8B4513","#A0522D","#8B0000","#800000","#B22222","#A52A2A","#C71585","#800080"], attr:[5,10,70,40], jewelry:"Black Pearl", tex:["ベルベット","漆黒"], key:["Deep","Formal"] },
+            "VividWinter": { name: "Vivid Winter", subtitle: "Winter / Vivid", hex:"#222222", desc: "コントラストの強い鮮やかな色が似合う、モダンでシャープなタイプ。モノトーンに一点原色を効かせるようなスタイルが抜群に似合います。", palette: ["#C71585","#00008B","#FF00FF","#00CED1","#DC143C","#4B0082","#FFD700","#000000","#800000","#1E90FF","#00FF00","#0000FF","#FF0000","#FFFF00","#00FFFF","#FF00FF","#8A2BE2","#9400D3","#9932CC","#8B008B","#4169E1","#0000CD","#000080","#008B8B","#008080","#800080","#8B008B","#9932CC","#BA55D3","#9400D3"], attr:[10,30,100,10], jewelry:"Platinum", tex:["メタリック","ワンカラー"], key:["Cool","Sharp"] },
+            "CoolWinter": { name: "Cool Winter", subtitle: "Winter / Cool", hex:"#0000CD", desc: "青みが強く、冷たさを感じる色が最も得意。黄みを完全に排除したアイシーカラーやフューシャピンクが映えます。", palette: ["#0000CD","#0000FF","#4169E1","#1E90FF","#00BFFF","#87CEEB","#4682B4","#5F9EA0","#00CED1","#40E0D0","#AFEEEE","#E0FFFF","#F0FFFF","#F0F8FF","#B0C4DE","#ADD8E6","#87CEFA","#E6E6FA","#D8BFD8","#DDA0DD","#EE82EE","#FF00FF","#FF00FF","#C71585","#8B008B","#800080","#4B0082","#6A5ACD","#7B68EE","#9370DB"], attr:[0,50,80,20], jewelry:"Silver", tex:["クリスタル","サテン"], key:["Cool","Crystal"] }
+        };
+
+        let currentStep = 0;
+        let chartInstance = null;
+
+        function startQuiz() {
+            document.getElementById('view-landing').classList.add('hidden');
+            document.getElementById('view-type-list').classList.add('hidden');
+            document.getElementById('view-quiz').classList.remove('hidden');
+            document.getElementById('view-quiz').classList.add('flex');
+            
+            const bg = document.getElementById('watercolor-bg');
+            if(bg) {
+                bg.style.opacity = '0'; 
+                setTimeout(() => { if(bg) bg.style.display = 'none'; }, 1000);
+            }
+            
+            renderQuestion();
+        }
+
+        function showTypeList() {
+            document.getElementById('view-landing').classList.add('hidden');
+            document.getElementById('view-type-list').classList.remove('hidden');
+            document.getElementById('view-result').classList.add('hidden'); // Also hide result if coming from there
+            
+            // Ensure BG is visible
+            const bg = document.getElementById('watercolor-bg');
+            if(bg) {
+                bg.style.display = 'block';
+                setTimeout(() => { if(bg) bg.style.opacity = '1'; }, 10);
+            }
+        }
+
+        function renderQuestion() {
+            const q = questions[currentStep];
+            document.getElementById('question-number').innerText = `Question ${currentStep + 1} / 15`;
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('question-desc').innerText = q.desc;
+            document.getElementById('progress-bar').style.width = `${((currentStep)/questions.length)*100}%`;
+            
+            const backBtn = document.getElementById('back-btn');
+            backBtn.classList.toggle('hidden', currentStep === 0);
+
+            const cont = document.getElementById('options-container');
+            cont.innerHTML = '';
+            
+            q.options.forEach((opt, idx) => {
+                const card = document.createElement('div');
+                card.className = 'option-card';
+                const cvsId = `q_cvs_${currentStep}_${idx}`;
+                card.innerHTML = `
+                    <canvas id="${cvsId}" class="quiz-canvas"></canvas>
+                    <div class="flex items-center justify-between w-full px-2 mt-auto">
+                        <span class="text-stone-600 font-medium text-lg">${opt.t}</span>
+                        <span class="w-8 h-8 rounded-full border border-stone-200 flex items-center justify-center text-stone-300">→</span>
+                    </div>
+                `;
+                card.onclick = () => { handleAnswer(opt.s); };
+                cont.appendChild(card);
+                setTimeout(() => drawQuizVisual(cvsId, q.id, idx), 10);
+            });
+        }
+
+        function handleAnswer(scoreDelta) {
+            if (scoreDelta) {
+                answerHistory.push(scoreDelta);
+                for (let key in scoreDelta) {
+                    scores[key] += scoreDelta[key];
+                }
+            } else {
+                answerHistory.push({});
+            }
+            
+            currentStep++;
+            if(currentStep < questions.length) {
+                renderQuestion();
+            } else {
+                showLoading();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                const lastScores = answerHistory.pop();
+                if (lastScores) {
+                    for (let key in lastScores) {
+                        scores[key] -= lastScores[key];
+                    }
+                }
+                renderQuestion();
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('view-quiz').classList.add('hidden');
+            document.getElementById('view-loading').classList.remove('hidden');
+            document.getElementById('view-loading').classList.add('flex');
+            
+            const isWarm = scores.W >= scores.C;
+            const isLight = scores.L >= scores.D;
+            const isSoft = scores.S >= scores.V;
+            const domWarm = scores.W - scores.C;
+            const domCool = scores.C - scores.W;
+            const domLight = scores.L - scores.D;
+            const domDeep = scores.D - scores.L;
+            const domSoft = scores.S - scores.V;
+            const domVivid = scores.V - scores.S;
+
+            let key = "";
+            if (isWarm) {
+                if (isLight) {
+                    if (domWarm > domLight && domWarm > domVivid) key = "WarmSpring";
+                    else if (domVivid > domLight && domVivid > domWarm) key = "BrightSpring";
+                    else if (domVivid > 5) key = "VividSpring";
+                    else key = "LightSpring";
+                } else {
+                    if (domWarm > domDeep && domWarm > domSoft) key = "WarmAutumn";
+                    else if (domDeep > domWarm && domDeep > domSoft) key = "DeepAutumn";
+                    else if (domVivid > domSoft) key = "StrongAutumn";
+                    else key = "MutedAutumn";
+                }
+            } else {
+                if (isLight) {
+                    if (domCool > domLight && domCool > domSoft) key = "CoolSummer";
+                    else if (domLight > domCool && domLight > domSoft) key = "LightSummer";
+                    else if (domVivid > -5) key = "BrightSummer";
+                    else key = "MutedSummer";
+                } else {
+                    if (domCool > domDeep && domCool > domVivid) key = "CoolWinter";
+                    else if (domDeep > domCool && domDeep > domVivid) key = "DeepWinter";
+                    else if (domLight > -5) key = "ClearWinter";
+                    else key = "VividWinter";
+                }
+            }
+            if (!typesData[key]) key = isWarm ? "WarmSpring" : "CoolSummer";
+
+            setTimeout(() => showResult(key, false), 1200);
+        }
+
+        function showResult(key, fromList) {
+            const data = typesData[key];
+            document.getElementById('view-loading').classList.add('hidden');
+            document.getElementById('view-type-list').classList.add('hidden');
+            document.getElementById('view-result').classList.remove('hidden');
+            
+            document.getElementById('result-title').innerText = data.name;
+            document.getElementById('result-subtitle').innerText = data.subtitle;
+            document.getElementById('result-description').innerText = data.desc;
+            document.getElementById('jewelry-advice').innerText = data.jewelry;
+
+            const tl = document.getElementById('texture-list'); tl.innerHTML = '';
+            data.tex.forEach(t => tl.innerHTML += `<li class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-stone-400 rounded-full"></span>${t}</li>`);
+            
+            const kc = document.getElementById('keywords-container'); kc.innerHTML = '';
+            data.key.forEach(k => kc.innerHTML += `<span class="px-3 py-1 bg-stone-100 rounded-full text-xs text-stone-600">${k}</span>`);
+
+            const pg = document.getElementById('palette-grid'); pg.innerHTML = '';
+            data.palette.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'nail-chip-container';
+                el.innerHTML = `<div class="nail-chip-realistic" style="background:${c}"></div>`;
+                el.onclick = () => { navigator.clipboard.writeText(c); showToast(); };
+                pg.appendChild(el);
+            });
+
+            initChart(data.attr, data.hex);
+
+            const backBtn = document.getElementById('result-back-btn');
+            if(fromList) {
+                backBtn.innerText = "BACK TO LIST";
+                backBtn.onclick = () => showTypeList();
+            } else {
+                backBtn.innerText = "TOP";
+                backBtn.onclick = () => resetApp();
+            }
+        }
+
+        function showToast() {
+            const t = document.getElementById('toast');
+            t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 2000);
+        }
+
+        function initChart(data, color) {
+            const ctx = document.getElementById('resultChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Warm', 'Light', 'Vivid', 'Soft'],
+                    datasets: [{ data: data, backgroundColor: color + '33', borderColor: color, borderWidth: 1, pointRadius: 0 }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: { r: { min:0, max:100, ticks:{display:false}, pointLabels:{font:{family:'Montserrat'}} } },
+                    plugins: { legend: { display:false } }
+                }
+            });
+        }
+
+        function resetApp() {
+            scores = { W:0, C:0, L:0, D:0, S:0, V:0 };
+            currentStep = 0;
+            answerHistory = [];
+            
+            document.getElementById('view-result').classList.add('hidden');
+            document.getElementById('view-quiz').classList.add('hidden');
+            document.getElementById('view-type-list').classList.add('hidden');
+            document.getElementById('view-landing').classList.remove('hidden');
+            
+            const bg = document.getElementById('watercolor-bg');
+            if(bg) {
+                bg.style.display = 'block';
+                setTimeout(() => { if(bg) bg.style.opacity = '1'; }, 10);
+                drawWatercolorBg();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -58,6 +58,7 @@ def _call_claude(prompt: str, system: str = "", tools: str = "", timeout: int = 
         capture_output=True,
         text=True,
         timeout=timeout,
+        cwd="/tmp",
     )
     if result.returncode != 0:
         raise RuntimeError(f"claude -p failed (exit {result.returncode}): {result.stderr[:300]}")

@@ -100,7 +100,7 @@ async def run_summarizer_agent(research_data: dict) -> dict:
 3. 新メニュー開発のヒントを含める
 4. JSON形式のみで出力する（前後の説明文・コードブロックは不要）"""
 
-    raw = _call_claude(prompt, system=SUMMARIZER_SYSTEM_PROMPT, timeout=120)
+    raw = _call_claude(prompt, system=SUMMARIZER_SYSTEM_PROMPT, timeout=300)
     print("✅ 要約完了")
 
     # JSONを抽出

@@ -84,13 +84,33 @@ def _call_claude(prompt: str, system: str = "", timeout: int = 120) -> str:
     return result.stdout.strip()
 
 
+def _get_season() -> str:
+    month = datetime.now().month
+    if month in [3, 4, 5]:
+        return "春"
+    elif month in [6, 7, 8]:
+        return "夏"
+    elif month in [9, 10, 11]:
+        return "秋"
+    else:
+        return "冬"
+
+
 async def run_summarizer_agent(research_data: dict) -> dict:
     """リサーチデータをサロン経営者向けレポートにまとめる"""
     print("\n📝 要約エージェント起動中...")
     print("-" * 50)
 
+    today = datetime.now().strftime("%Y年%m月%d日")
+    season = _get_season()
     research_json = json.dumps(research_data, ensure_ascii=False, indent=2)
-    prompt = f"""以下のネイルトレンドリサーチデータを、ネイルサロン経営者向けの週次レポートにまとめてください。
+    prompt = f"""今日は{today}（{season}シーズン）です。以下のネイルトレンドリサーチデータを、ネイルサロン経営者向けの週次レポートにまとめてください。
+
+【現在の季節コンテキスト】
+- 日付: {today}
+- 季節: {season}
+- 季節感を必ず反映し、「{season}らしい」表現・提案にすること
+- 秋冬・冬などの異なる季節の表現は使わないこと
 
 【リサーチデータ】
 {research_json}
@@ -99,7 +119,8 @@ async def run_summarizer_agent(research_data: dict) -> dict:
 1. サロン経営者が「今すぐ何をすべきか」が明確になるよう優先度をつける
 2. 各トレンドについて、具体的なSNS投稿アイデアを提案する
 3. 新メニュー開発のヒントを含める
-4. JSON形式のみで出力する（前後の説明文・コードブロックは不要）"""
+4. {season}シーズンに合った季節感のある表現を使う
+5. JSON形式のみで出力する（前後の説明文・コードブロックは不要）"""
 
     raw = _call_claude(prompt, system=SUMMARIZER_SYSTEM_PROMPT, timeout=300)
     print("✅ 要約完了")

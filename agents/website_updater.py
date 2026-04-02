@@ -12,6 +12,111 @@ OUTPUT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tre
 
 # ─── ヘルパー ────────────────────────────────────────────────
 
+_TREND_KEYWORDS = {
+    "オーロラ": "nail,aurora,holographic",
+    "aurora": "nail,aurora,holographic",
+    "桜": "nail,sakura,pink",
+    "ミルキーピンク": "nail,pink,milky",
+    "グラス": "nail,glass,transparent",
+    "フラワー": "nail,flower,floral",
+    "押し花": "nail,flower,art",
+    "フレンチ": "nail,french,manicure",
+    "ミント": "nail,mint,green",
+    "ラベンダー": "nail,lavender,purple",
+    "ケア": "nail,care,beauty",
+    "テラコッタ": "nail,terracotta,earthy",
+    "アース": "nail,earthy,brown",
+}
+_TAG_MAP = {
+    "オーロラ": ("#オーロラネイル", "auroranails"),
+    "桜": ("#桜ネイル", "sakuranails"),
+    "ミルキーピンク": ("#ミルキーネイル", "milkynails"),
+    "グラス": ("#グラスネイル", "glassnails"),
+    "フラワー": ("#フラワーネイル", "flowernails"),
+    "押し花": ("#押し花ネイル", "pressedflowernails"),
+    "フレンチ": ("#フレンチネイル", "frenchnails"),
+    "ミント": ("#ミントネイル", "mintnails"),
+    "ラベンダー": ("#ラベンダーネイル", "lavendernails"),
+    "ケア": ("#ネイルケア", "nailcare"),
+    "テラコッタ": ("#テラコッタネイル", "terracottanails"),
+    "アース": ("#アースカラーネイル", "earthtonenails"),
+}
+
+_WM = "https://commons.wikimedia.org/wiki/Special:Redirect/file/"
+_TREND_PHOTOS = {
+    "オーロラ":     [_WM+"Galaxies_nail_art.jpg",        _WM+"Acryl-for-nail-art-by-diamond-nails.jpg", _WM+"Nail_art_(2).jpg"],
+    "aurora":       [_WM+"Galaxies_nail_art.jpg",        _WM+"Acryl-for-nail-art-by-diamond-nails.jpg", _WM+"Nail_art_(2).jpg"],
+    "桜":           [_WM+"Flower_nail_art.jpg",           _WM+"Nail_art_(3).jpg",                        _WM+"Nail_polish_art.jpg"],
+    "ミルキーピンク":[_WM+"Nail_art_example,_Nov_2013.jpg",_WM+"Nail_art_(3).jpg",                        _WM+"Nail_polish_art.jpg"],
+    "グラス":       [_WM+"Gel_nail_art.jpg",              _WM+"Complex_nail_art.jpg",                    _WM+"Nail_art_(2).jpg"],
+    "フラワー":     [_WM+"Flower_nail_art.jpg",           _WM+"Nail_art_example,_Nov_2013.jpg",          _WM+"Nail_polish_art.jpg"],
+    "押し花":       [_WM+"Flower_nail_art.jpg",           _WM+"Nail_art_(3).jpg",                        _WM+"Nail_art_example,_Nov_2013.jpg"],
+    "フレンチ":     [_WM+"French_tip_nail_art.jpg",       _WM+"Gel_nail_art.jpg",                        _WM+"Nail_art_at_a_cosmetics_class_in_Baozhong_Junior_High_School_20130322_01.jpg"],
+    "ミント":       [_WM+"Nail_art_(2).jpg",              _WM+"Swirly_purple_konad_nail_art.jpg",         _WM+"Complex_nail_art.jpg"],
+    "ラベンダー":   [_WM+"Swirly_purple_konad_nail_art.jpg",_WM+"Nail_art_(3).jpg",                       _WM+"Nail_polish_art.jpg"],
+    "ケア":         [_WM+"Nail_art_in_Makati_(Metro_Manila;_2023-08-18).jpg", _WM+"Gel_nail_art.jpg",    _WM+"Nail_art_example,_Nov_2013.jpg"],
+    "テラコッタ":   [_WM+"Nail_art_(3).jpg",              _WM+"Nail_polish_art.jpg",                     _WM+"Complex_nail_art.jpg"],
+    "アース":       [_WM+"Nail_art_(3).jpg",              _WM+"Nail_polish_art.jpg",                     _WM+"Nail_art_example,_Nov_2013.jpg"],
+}
+_DEFAULT_PHOTOS = [_WM+"Nail_art_example,_Nov_2013.jpg", _WM+"Flower_nail_art.jpg", _WM+"Gel_nail_art.jpg"]
+
+
+def _get_photos(title: str) -> list:
+    for k, urls in _TREND_PHOTOS.items():
+        if k.lower() in title.lower():
+            return urls
+    return _DEFAULT_PHOTOS
+
+
+def _photo_gallery(title: str, rank: int) -> str:
+    photos = _get_photos(title)
+    imgs = "".join(
+        f'<div style="border-radius:8px;overflow:hidden;aspect-ratio:1;background:#f0ece6;">'
+        f'<img src="{url}" alt="{_esc(title)}" loading="lazy" '
+        f'style="width:100%;height:100%;object-fit:cover;display:block;" '
+        f'onerror="this.parentElement.innerHTML=\'<div style=\\\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px;\\\">💅</div>\'"/>'
+        f'</div>'
+        for url in photos
+    )
+    return (
+        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0;">{imgs}</div>'
+        f'<p style="font-size:10px;color:#bbb;margin:0 0 12px;font-family:Montserrat,sans-serif;">'
+        f'📷 参考写真 via Wikimedia Commons</p>'
+    )
+
+
+def _sns_cards(trend_titles: list) -> str:
+    cards = []
+    for title in trend_titles[:5]:
+        jp_tag, en_tag = "#ネイル", "nailart"
+        for k, (j, e) in _TAG_MAP.items():
+            if k in title:
+                jp_tag, en_tag = j, e
+                break
+        ig_url = f"https://www.instagram.com/explore/tags/{en_tag}/"
+        th_url = f"https://www.threads.net/search?q={jp_tag.lstrip('#')}&serp_type=tags"
+        short = _esc(title[:18] + ("…" if len(title) > 18 else ""))
+        cards.append(
+            f'<div style="background:white;border:1px solid #e8e2d8;border-radius:12px;padding:16px;">'
+            f'<p style="font-size:12px;font-weight:700;color:#4a4643;margin:0 0 6px;">{short}</p>'
+            f'<div style="font-size:11px;font-family:Montserrat,sans-serif;color:#d4af37;margin-bottom:10px;">{_esc(jp_tag)}</div>'
+            f'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+            f'<a href="{ig_url}" target="_blank" rel="noopener" '
+            f'style="font-size:11px;font-family:Montserrat,sans-serif;'
+            f'background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);'
+            f'color:white;padding:6px 12px;border-radius:100px;text-decoration:none;">Instagram</a>'
+            f'<a href="{th_url}" target="_blank" rel="noopener" '
+            f'style="font-size:11px;font-family:Montserrat,sans-serif;'
+            f'background:#000;color:white;padding:6px 12px;border-radius:100px;text-decoration:none;">Threads</a>'
+            f'</div></div>'
+        )
+    return (
+        f'<p class="brand" style="font-size:10px;letter-spacing:0.3em;color:#d4af37;text-transform:uppercase;margin:0 0 12px;">参考SNS投稿</p>'
+        f'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:24px;">'
+        + "".join(cards) + '</div>'
+    )
+
+
 def _color_hex(name: str) -> str:
     color_map = {
         "テラコッタ": "#c8715a", "ミルキーホワイト": "#f5f2ee", "モーヴ": "#b8a0a8",
@@ -80,30 +185,34 @@ def _color_swatches(colors: list, hexes: list) -> str:
 
 def _trend_card(trend: dict) -> str:
     rank = trend.get("rank", "")
-    title = _esc(trend.get("title", ""))
+    raw_title = trend.get("title", "")
+    title = _esc(raw_title)
     why = _esc(trend.get("why_important", ""))
     actions = _action_items(trend.get("action_items", []))
     hashtags = _tags(trend.get("sns_hashtags", []))
     diff = _difficulty_badge(trend.get("difficulty", ""))
     impact = _esc(trend.get("estimated_impact", ""))
+    photos = _photo_gallery(raw_title, rank if isinstance(rank, int) else 1)
 
     return f"""
-<div style="background:white;border:1px solid #e8e2d8;border-radius:12px;padding:24px;
-            display:grid;grid-template-columns:48px 1fr;gap:16px;margin-bottom:16px;
-            transition:box-shadow 0.2s;box-shadow:0 1px 4px rgba(74,70,67,0.06);">
-  <div style="width:48px;height:48px;background:#d4af37;color:white;border-radius:50%;
-              display:flex;align-items:center;justify-content:center;
-              font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;flex-shrink:0;">{rank}</div>
-  <div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
-      <h3 style="font-size:17px;font-weight:700;margin:0;color:#4a4643;">{title}</h3>
-      {diff}
+<div style="background:white;border:1px solid #e8e2d8;border-radius:12px;padding:24px;margin-bottom:16px;
+            box-shadow:0 1px 4px rgba(74,70,67,0.06);">
+  <div style="display:grid;grid-template-columns:48px 1fr;gap:16px;margin-bottom:12px;">
+    <div style="width:48px;height:48px;background:#d4af37;color:white;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;
+                font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;flex-shrink:0;">{rank}</div>
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+        <h3 style="font-size:17px;font-weight:700;margin:0;color:#4a4643;">{title}</h3>
+        {diff}
+      </div>
+      <p style="font-size:13px;color:#888;margin:0;line-height:1.6;">{why}</p>
     </div>
-    <p style="font-size:13px;color:#888;margin:0 0 14px;line-height:1.6;">{why}</p>
-    {actions}
-    {f'<p style="font-size:12px;color:#aaa;margin:0 0 10px;">📈 {impact}</p>' if impact else ''}
-    <div>{hashtags}</div>
   </div>
+  {photos}
+  {actions}
+  {f'<p style="font-size:12px;color:#aaa;margin:0 0 10px;">📈 {impact}</p>' if impact else ''}
+  <div>{hashtags}</div>
 </div>"""
 
 
@@ -165,6 +274,8 @@ def render_html(data: dict) -> str:
     ideas_html = _idea_cards(smt.get("content_ideas", []))
     post_time = _esc(smt.get("best_posting_times", ""))
     eng_tips = _esc(smt.get("engagement_tips", ""))
+    trend_titles = [t.get("title", "") for t in data.get("priority_trends", [])]
+    sns_cards_html = _sns_cards(trend_titles)
 
     # メニュー
     menus_html = "".join(_menu_card(m) for m in data.get("menu_suggestions", []))
@@ -212,7 +323,7 @@ def render_html(data: dict) -> str:
 <section style="background:linear-gradient(135deg,#4a4643 0%,#2d2a28 60%,#3d3530 100%);color:white;text-align:center;padding:64px 24px 56px;position:relative;overflow:hidden;">
     <div style="position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 60% 40%,rgba(212,175,55,0.12) 0%,transparent 60%);pointer-events:none;"></div>
     <div class="brand" style="font-size:10px;font-weight:400;letter-spacing:0.4em;color:#d4af37;text-transform:uppercase;margin-bottom:16px;">Weekly Nail Trend Report</div>
-    <h1 class="serif" style="font-size:clamp(30px,5vw,48px);font-weight:400;line-height:1.2;margin:0 0 12px;color:white;">{title}</h1>
+    <h1 class="serif" style="font-size:clamp(20px,5.5vw,48px);font-weight:400;line-height:1.2;margin:0 0 12px;color:white;word-break:keep-all;">{title}</h1>
     <p class="brand" style="font-size:11px;font-weight:300;letter-spacing:0.25em;color:rgba(255,255,255,0.5);text-transform:uppercase;margin:0 0 32px;">Curated for Nail Salon Owners</p>
     <span class="brand" style="display:inline-block;font-size:11px;font-weight:400;letter-spacing:0.15em;color:#d4af37;border:1px solid rgba(212,175,55,0.4);padding:8px 20px;border-radius:100px;">{display_date}</span>
 </section>
@@ -257,6 +368,7 @@ def render_html(data: dict) -> str:
 <div class="section">
     <p class="section-label">Social Media Guide</p>
     <h2 class="section-title">SNS活用ガイド</h2>
+    {sns_cards_html}
     <p class="brand" style="font-size:10px;letter-spacing:0.3em;color:#d4af37;text-transform:uppercase;margin-bottom:12px;">投稿アイデア</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px;" class="idea-grid">
         {ideas_html}

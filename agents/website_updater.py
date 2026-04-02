@@ -42,30 +42,46 @@ _TAG_MAP = {
     "アース": ("#アースカラーネイル", "earthtonenails"),
 }
 
+_WM = "https://commons.wikimedia.org/wiki/Special:Redirect/file/"
+_TREND_PHOTOS = {
+    "オーロラ":     [_WM+"Galaxies_nail_art.jpg",        _WM+"Acryl-for-nail-art-by-diamond-nails.jpg", _WM+"Nail_art_(2).jpg"],
+    "aurora":       [_WM+"Galaxies_nail_art.jpg",        _WM+"Acryl-for-nail-art-by-diamond-nails.jpg", _WM+"Nail_art_(2).jpg"],
+    "桜":           [_WM+"Flower_nail_art.jpg",           _WM+"Nail_art_(3).jpg",                        _WM+"Nail_polish_art.jpg"],
+    "ミルキーピンク":[_WM+"Nail_art_example,_Nov_2013.jpg",_WM+"Nail_art_(3).jpg",                        _WM+"Nail_polish_art.jpg"],
+    "グラス":       [_WM+"Gel_nail_art.jpg",              _WM+"Complex_nail_art.jpg",                    _WM+"Nail_art_(2).jpg"],
+    "フラワー":     [_WM+"Flower_nail_art.jpg",           _WM+"Nail_art_example,_Nov_2013.jpg",          _WM+"Nail_polish_art.jpg"],
+    "押し花":       [_WM+"Flower_nail_art.jpg",           _WM+"Nail_art_(3).jpg",                        _WM+"Nail_art_example,_Nov_2013.jpg"],
+    "フレンチ":     [_WM+"French_tip_nail_art.jpg",       _WM+"Gel_nail_art.jpg",                        _WM+"Nail_art_at_a_cosmetics_class_in_Baozhong_Junior_High_School_20130322_01.jpg"],
+    "ミント":       [_WM+"Nail_art_(2).jpg",              _WM+"Swirly_purple_konad_nail_art.jpg",         _WM+"Complex_nail_art.jpg"],
+    "ラベンダー":   [_WM+"Swirly_purple_konad_nail_art.jpg",_WM+"Nail_art_(3).jpg",                       _WM+"Nail_polish_art.jpg"],
+    "ケア":         [_WM+"Nail_art_in_Makati_(Metro_Manila;_2023-08-18).jpg", _WM+"Gel_nail_art.jpg",    _WM+"Nail_art_example,_Nov_2013.jpg"],
+    "テラコッタ":   [_WM+"Nail_art_(3).jpg",              _WM+"Nail_polish_art.jpg",                     _WM+"Complex_nail_art.jpg"],
+    "アース":       [_WM+"Nail_art_(3).jpg",              _WM+"Nail_polish_art.jpg",                     _WM+"Nail_art_example,_Nov_2013.jpg"],
+}
+_DEFAULT_PHOTOS = [_WM+"Nail_art_example,_Nov_2013.jpg", _WM+"Flower_nail_art.jpg", _WM+"Gel_nail_art.jpg"]
 
-def _trend_kw(title: str) -> str:
-    for k, v in _TREND_KEYWORDS.items():
+
+def _get_photos(title: str) -> list:
+    for k, urls in _TREND_PHOTOS.items():
         if k.lower() in title.lower():
-            return v
-    return "nail,art,manicure"
+            return urls
+    return _DEFAULT_PHOTOS
 
 
 def _photo_gallery(title: str, rank: int) -> str:
-    kw = _trend_kw(title)
+    photos = _get_photos(title)
     imgs = "".join(
-        f'<a href="https://www.flickr.com/search/?text={kw.replace(",", "+")}" target="_blank" rel="noopener" '
-        f'style="display:block;border-radius:8px;overflow:hidden;aspect-ratio:1;background:#f0ece6;">'
-        f'<img src="https://loremflickr.com/240/240/{kw}?random={rank * 10 + i}" '
-        f'alt="{title}" loading="lazy" '
+        f'<div style="border-radius:8px;overflow:hidden;aspect-ratio:1;background:#f0ece6;">'
+        f'<img src="{url}" alt="{_esc(title)}" loading="lazy" '
         f'style="width:100%;height:100%;object-fit:cover;display:block;" '
-        f'onerror="this.parentElement.style.background=\'#e8e2d8\';this.style.display=\'none\'"/>'
-        f'</a>'
-        for i in range(1, 4)
+        f'onerror="this.parentElement.innerHTML=\'<div style=\\\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px;\\\">💅</div>\'"/>'
+        f'</div>'
+        for url in photos
     )
     return (
         f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0;">{imgs}</div>'
         f'<p style="font-size:10px;color:#bbb;margin:0 0 12px;font-family:Montserrat,sans-serif;">'
-        f'📷 タップで関連画像を検索</p>'
+        f'📷 参考写真 via Wikimedia Commons</p>'
     )
 
 

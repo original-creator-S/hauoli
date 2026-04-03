@@ -196,7 +196,6 @@ def _trend_card(trend: dict, photo_urls: list | None = None) -> str:
     hashtags = _tags(trend.get("sns_hashtags", []))
     diff = _difficulty_badge(trend.get("difficulty", ""))
     impact = _esc(trend.get("estimated_impact", ""))
-    photos = _photo_gallery(raw_title, rank if isinstance(rank, int) else 1, urls=photo_urls)
 
     return f"""
 <div style="background:white;border:1px solid #e8e2d8;border-radius:12px;padding:24px;margin-bottom:16px;
@@ -213,7 +212,6 @@ def _trend_card(trend: dict, photo_urls: list | None = None) -> str:
       <p style="font-size:13px;color:#888;margin:0;line-height:1.6;">{why}</p>
     </div>
   </div>
-  {photos}
   {actions}
   {f'<p style="font-size:12px;color:#aaa;margin:0 0 10px;">📈 {impact}</p>' if impact else ''}
   <div>{hashtags}</div>

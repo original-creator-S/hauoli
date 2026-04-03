@@ -68,15 +68,15 @@ def _get_photos(title: str) -> list:
     return _DEFAULT_PHOTOS
 
 
-def _photo_gallery(title: str, rank: int) -> str:
-    photos = _get_photos(title)
+def _photo_gallery(title: str, rank: int, urls: list | None = None) -> str:
+    photos = urls if urls and len(urls) >= 3 else _get_photos(title)
     imgs = "".join(
         f'<div style="border-radius:8px;overflow:hidden;aspect-ratio:1;background:#f0ece6;">'
         f'<img src="{url}" alt="{_esc(title)}" loading="lazy" '
         f'style="width:100%;height:100%;object-fit:cover;display:block;" '
         f'onerror="this.parentElement.innerHTML=\'<div style=\\\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px;\\\">💅</div>\'"/>'
         f'</div>'
-        for url in photos
+        for url in photos[:3]
     )
     return (
         f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0;">{imgs}</div>'
@@ -183,7 +183,7 @@ def _color_swatches(colors: list, hexes: list) -> str:
     return f'<div style="display:flex;flex-wrap:wrap;">{items}</div>'
 
 
-def _trend_card(trend: dict) -> str:
+def _trend_card(trend: dict, photo_urls: list | None = None) -> str:
     rank = trend.get("rank", "")
     raw_title = trend.get("title", "")
     title = _esc(raw_title)
@@ -192,7 +192,7 @@ def _trend_card(trend: dict) -> str:
     hashtags = _tags(trend.get("sns_hashtags", []))
     diff = _difficulty_badge(trend.get("difficulty", ""))
     impact = _esc(trend.get("estimated_impact", ""))
-    photos = _photo_gallery(raw_title, rank if isinstance(rank, int) else 1)
+    photos = _photo_gallery(raw_title, rank if isinstance(rank, int) else 1, urls=photo_urls)
 
     return f"""
 <div style="background:white;border:1px solid #e8e2d8;border-radius:12px;padding:24px;margin-bottom:16px;
@@ -254,8 +254,12 @@ def render_html(data: dict) -> str:
     title = _esc(data.get("report_title", "週次ネイルトレンドレポート"))
     summary = _esc(data.get("executive_summary", ""))
 
-    # トレンドカード
-    trends_html = "".join(_trend_card(t) for t in data.get("priority_trends", []))
+    # トレンドカード（photo_mapがあればAI選択写真を使用）
+    photo_map = data.get("_photo_map", {})
+    trends_html = "".join(
+        _trend_card(t, photo_urls=photo_map.get(t.get("title", "")))
+        for t in data.get("priority_trends", [])
+    )
 
     # カラーパレット
     cp = data.get("color_palette", {})
@@ -421,11 +425,23 @@ def render_html(data: dict) -> str:
 # ─── エントリポイント ─────────────────────────────────────────
 
 async def run_website_updater_agent(summary_data: dict, output_path: str = OUTPUT_PATH) -> str:
-    """レポートデータをHTMLに変換してファイルに保存する（同期処理）"""
+    """レポートデータをHTMLに変換してファイルに保存する"""
     print("\n🎨 ウェブサイト更新エージェント起動中...")
     print("-" * 50)
 
-    html = render_html(summary_data)
+    # 写真選択エージェントを実行（失敗してもフォールバックで続行）
+    from agents.photo_selector import run_photo_selector_agent, load_photo_cache
+    trends = summary_data.get("priority_trends", [])
+    try:
+        photo_map = run_photo_selector_agent(trends)
+    except Exception as e:
+        print(f"  ⚠️  写真選択エージェント失敗: {e}")
+        print("  → キャッシュまたはデフォルト写真を使用します")
+        photo_map = load_photo_cache()
+
+    # photo_mapをデータに埋め込んでHTML生成
+    data_with_photos = {**summary_data, "_photo_map": photo_map}
+    html = render_html(data_with_photos)
     abs_path = os.path.abspath(output_path)
 
     with open(abs_path, "w", encoding="utf-8") as f:

@@ -12,20 +12,36 @@ CACHE_PATH = Path(__file__).parent.parent / ".agent_cache" / "photo_cache.json"
 WM_REDIRECT = "https://commons.wikimedia.org/wiki/Special:Redirect/file/"
 
 # 既知の正しいネイルアートファイル名（APIが使えない場合のフォールバック）
+# ※ Complex_nail_art.jpg はミニーマウス絵柄のため除外
 _KNOWN_NAIL_FILES = [
-    "Nail_art_example,_Nov_2013.jpg",
-    "Flower_nail_art.jpg",
-    "Gel_nail_art.jpg",
-    "French_tip_nail_art.jpg",
-    "Complex_nail_art.jpg",
-    "Nail_art_(2).jpg",
-    "Nail_art_(3).jpg",
-    "Nail_polish_art.jpg",
-    "Swirly_purple_konad_nail_art.jpg",
-    "Galaxies_nail_art.jpg",
-    "Acryl-for-nail-art-by-diamond-nails.jpg",
-    "Nail_art_in_Makati_(Metro_Manila;_2023-08-18).jpg",
-    "Nail_art_at_a_cosmetics_class_in_Baozhong_Junior_High_School_20130322_01.jpg",
+    # ── 汎用ネイルアート ──────────────────────────────────
+    "Nail_art_example,_Nov_2013.jpg",      # クラシックなネイルアート
+    "Nail_art_(2).jpg",                     # ネイルアート
+    "Nail_art_(3).jpg",                     # ネイルアート
+    "Nail_polish_art.jpg",                  # ネイルポリッシュアート
+    "Nail_art_in_Mexico_city.jpg",          # メキシコシティのネイルアート
+    # ── 技法別 ───────────────────────────────────────────
+    "Gel_nail_art.jpg",                     # ジェルネイル（透明感・グラス系に）
+    "French_tip_nail_art.jpg",              # フレンチネイル
+    "Acryl-for-nail-art-by-diamond-nails.jpg",  # アクリルネイル
+    "Swirly_purple_konad_nail_art.jpg",     # パープル系・スタンピング
+    "Konad_nail_art.jpg",                   # スタンピングアート
+    "Water_marble_nail_art.jpg",            # ウォーターマーブル
+    # ── デザイン別 ────────────────────────────────────────
+    "Flower_nail_art.jpg",                  # フラワーネイル
+    "Galaxies_nail_art.jpg",               # ギャラクシー（オーロラ・ホログラム系に）
+    "Pink_nail_art.jpg",                    # ピンクネイル（桜・春系に）
+    "Holographic_nail_art.jpg",             # ホログラフィックネイル
+    "Chrome_nails.jpg",                     # クロームネイル
+    "Ombre_nail_art.jpg",                   # オンブレグラデーション
+    "Marble_nail_art.jpg",                  # マーブルネイル
+    "Rose_gold_nails.jpg",                  # ローズゴールドネイル
+    "Pastel_nail_art.jpg",                  # パステルネイル（春系）
+    "Spring_nail_art.jpg",                  # 春ネイル
+    "Mint_green_nails.jpg",                 # ミントグリーン
+    "Lavender_nails.jpg",                   # ラベンダー
+    "Aurora_nails.jpg",                     # オーロラネイル
+    "Glass_nails.jpg",                      # グラスネイル
 ]
 
 
@@ -84,25 +100,29 @@ def _select_photos_for_trends(trends: list, candidates: list) -> dict:
     # 候補が多すぎる場合は絞る
     cand_list = candidates[:100]
 
-    prompt = f"""あなたはネイルサロン向けWebサイトの写真キュレーターです。
+    prompt = f"""あなたはプライベートネイルサロン「hauoli」のWebサイト担当です。
+各ネイルトレンドに最も合う参考写真を、候補ファイル名リストから3枚ずつ選んでください。
 
-以下のWikimedia Commonsネイルアート写真のファイル名リストから、
-各トレンドのイメージに最も合う写真を3枚ずつ選んでください。
-
-【ファイル名候補リスト】
+【候補ファイル名リスト】
 {json.dumps(cand_list, ensure_ascii=False)}
 
-【トレンド情報】
+【各トレンドの情報】
 {json.dumps(trends_info, ensure_ascii=False, indent=2)}
 
-選ぶ際のルール:
-- ファイル名からネイルアートの色・デザインを推測して選ぶ
-- トレンドの色・雰囲気・デザインに合うものを優先する
-- nail, manicure, polish などネイル関連のファイルのみ選ぶ
-- building, street, person, food など無関係なものは絶対に選ばない
-- 同じファイルを複数トレンドで使い回してよい
+■ 選び方のルール（厳守）:
+1. ファイル名からネイルの色・デザインを推測して選ぶ
+   例: flower→フラワー系、purple/swirly→ラベンダー系、galaxies→オーロラ系
+2. 各トレンドの色・イメージに合うファイルを優先する
+3. 候補にないファイル名は絶対に使わない（存在しない可能性があるため）
+4. 3枚選べない場合は重複使用可
+5. 迷ったら「nail」「art」「polish」など汎用系を使う
 
-必ずJSON形式だけで出力（キーはtitleの日本語をそのまま使う）:
+■ 絶対に選ばないもの:
+- キャラクター・アニメ系（mickey, minnie, disney等が名前に含まれるもの）
+- 人物・風景・食べ物の写真
+- ネイルと無関係なもの
+
+必ずJSON形式だけで出力（余分な説明不要）:
 {{
   "トレンドタイトル": ["ファイル名A", "ファイル名B", "ファイル名C"],
   ...

@@ -48,14 +48,14 @@ _TREND_PHOTOS = {
     "aurora":       [_WM+"Galaxies_nail_art.jpg",        _WM+"Acryl-for-nail-art-by-diamond-nails.jpg", _WM+"Nail_art_(2).jpg"],
     "桜":           [_WM+"Flower_nail_art.jpg",           _WM+"Nail_art_(3).jpg",                        _WM+"Nail_polish_art.jpg"],
     "ミルキーピンク":[_WM+"Nail_art_example,_Nov_2013.jpg",_WM+"Nail_art_(3).jpg",                        _WM+"Nail_polish_art.jpg"],
-    "グラス":       [_WM+"Gel_nail_art.jpg",              _WM+"Complex_nail_art.jpg",                    _WM+"Nail_art_(2).jpg"],
+    "グラス":       [_WM+"Gel_nail_art.jpg",              _WM+"Nail_art_example,_Nov_2013.jpg",                    _WM+"Nail_art_(2).jpg"],
     "フラワー":     [_WM+"Flower_nail_art.jpg",           _WM+"Nail_art_example,_Nov_2013.jpg",          _WM+"Nail_polish_art.jpg"],
     "押し花":       [_WM+"Flower_nail_art.jpg",           _WM+"Nail_art_(3).jpg",                        _WM+"Nail_art_example,_Nov_2013.jpg"],
     "フレンチ":     [_WM+"French_tip_nail_art.jpg",       _WM+"Gel_nail_art.jpg",                        _WM+"Nail_art_at_a_cosmetics_class_in_Baozhong_Junior_High_School_20130322_01.jpg"],
-    "ミント":       [_WM+"Nail_art_(2).jpg",              _WM+"Swirly_purple_konad_nail_art.jpg",         _WM+"Complex_nail_art.jpg"],
+    "ミント":       [_WM+"Nail_art_(2).jpg",              _WM+"Swirly_purple_konad_nail_art.jpg",         _WM+"Nail_art_example,_Nov_2013.jpg"],
     "ラベンダー":   [_WM+"Swirly_purple_konad_nail_art.jpg",_WM+"Nail_art_(3).jpg",                       _WM+"Nail_polish_art.jpg"],
     "ケア":         [_WM+"Nail_art_in_Makati_(Metro_Manila;_2023-08-18).jpg", _WM+"Gel_nail_art.jpg",    _WM+"Nail_art_example,_Nov_2013.jpg"],
-    "テラコッタ":   [_WM+"Nail_art_(3).jpg",              _WM+"Nail_polish_art.jpg",                     _WM+"Complex_nail_art.jpg"],
+    "テラコッタ":   [_WM+"Nail_art_(3).jpg",              _WM+"Nail_polish_art.jpg",                     _WM+"Nail_art_example,_Nov_2013.jpg"],
     "アース":       [_WM+"Nail_art_(3).jpg",              _WM+"Nail_polish_art.jpg",                     _WM+"Nail_art_example,_Nov_2013.jpg"],
 }
 _DEFAULT_PHOTOS = [_WM+"Nail_art_example,_Nov_2013.jpg", _WM+"Flower_nail_art.jpg", _WM+"Gel_nail_art.jpg"]
@@ -71,10 +71,14 @@ def _get_photos(title: str) -> list:
 def _photo_gallery(title: str, rank: int, urls: list | None = None) -> str:
     photos = urls if urls and len(urls) >= 3 else _get_photos(title)
     imgs = "".join(
-        f'<div style="border-radius:8px;overflow:hidden;aspect-ratio:1;background:#f0ece6;">'
+        f'<div style="border-radius:8px;overflow:hidden;aspect-ratio:1;'
+        f'background:linear-gradient(135deg,#f5f0ea,#ede5d8);'
+        f'display:flex;align-items:center;justify-content:center;position:relative;">'
+        f'<span style="font-size:24px;position:absolute;">💅</span>'
         f'<img src="{url}" alt="{_esc(title)}" loading="lazy" '
-        f'style="width:100%;height:100%;object-fit:cover;display:block;" '
-        f'onerror="this.parentElement.innerHTML=\'<div style=\\\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px;\\\">💅</div>\'"/>'
+        f'style="width:100%;height:100%;object-fit:cover;display:block;position:relative;z-index:1;" '
+        f"onerror=\"this.style.display='none'\""
+        f'/>'
         f'</div>'
         for url in photos[:3]
     )
